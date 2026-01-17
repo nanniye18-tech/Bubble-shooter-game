@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Blast Replica</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: sans-serif;
+        }
+        canvas {
+            border: 4px solid #333;
+            background-color: #222;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .ui {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #score { font-size: 24px; font-weight: bold; color: #00ffcc; }
+        .instructions { color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="ui">
+        <div>SCORE</div>
+        <div id="score">0</div>
+    </div>
+
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <div class="instructions">Click a square to place a block. Fill a row or column to "BLAST" it!</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        const GRID_SIZE = 8;
+        const CELL_SIZE = 400 / GRID_SIZE;
+        let score = 0;
+
+        // Create 8x8 Empty Board (0 = empty, 1 = filled)
+        let grid = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    // Draw Grid Lines
+                    ctx.strokeStyle = "#333";
+                    ctx.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+                    // Draw Blocks
+                    if (grid[r][c] === 1) {
+                        ctx.fillStyle = "#00ffcc";
+                        // Draw with a slight margin for a "blocky" look
+                        ctx.fillRect(c * CELL_SIZE + 4, r * CELL_SIZE + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+                        
+                        // Add a little shine
+                        ctx.fillStyle = "rgba(255,255,255,0.2)";
+                        ctx.fillRect(c * CELL_SIZE + 4, r * CELL_SIZE + 4, CELL_SIZE - 8, 10);
+                    }
+                }
+            }
+        }
+
+        function checkLines() {
+            let rowsToClear = [];
+            let colsToClear = [];
+
+            // Find full rows
+            for (let r = 0; r < GRID_SIZE; r++) {
+                if (grid[r].every(cell => cell === 1)) rowsToClear.push(r);
+            }
+
+            // Find full columns
+            for (let c = 0; c < GRID_SIZE; c++) {
+                let isFull = true;
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    if (grid[r][c] === 0) {
+                        isFull = false;
+                        break;
+                    }
+                }
+                if (isFull) colsToClear.push(c);
+            }
+
+            // Clear them
+            rowsToClear.forEach(r => grid[r].fill(0));
+            colsToClear.forEach(c => {
+                for (let r = 0; r < GRID_SIZE; r++) grid[r][c] = 0;
+            });
+
+            // Update Score
+            if (rowsToClear.length > 0 || colsToClear.length > 0) {
+                score += (rowsToClear.length + colsToClear.length) * 100;
+                scoreElement.innerText = score;
+            }
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const col = Math.floor(x / CELL_SIZE);
+            const row = Math.floor(y / CELL_SIZE);
+
+            if (grid[row][col] === 0) {
+                grid[row][col] = 1;
+                checkLines();
+                draw();
+            }
+        });
+
+        // Initial Draw
+        draw();
+    </script>
+</body>
+</html>
