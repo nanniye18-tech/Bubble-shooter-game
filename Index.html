@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bubble Shooter Replica</title>
+    <style>
+        body { background: #222; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
+        canvas { background: #000; border: 5px solid #444; border-radius: 10px; margin-top: 20px; }
+        .stats { margin-top: 10px; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="stats">Score: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+
+        const ROWS = 8;
+        const COLS = 10;
+        const RADIUS = 20;
+        const COLORS = ['#ff3e3e', '#3e95ff', '#3eff6b', '#ffbe3e'];
+        
+        let score = 0;
+        let grid = [];
+        let projectile = null; // The bubble being fired
+
+        // 1. Initialize Hexagonal Grid
+        function initGrid() {
+            for (let r = 0; r < ROWS; r++) {
+                grid[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    // Only fill top 4 rows with bubbles
+                    grid[r][c] = (r < 4) ? COLORS[Math.floor(Math.random() * COLORS.length)] : null;
+                }
+            }
+        }
+
+        // 2. Draw Bubbles
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c]) {
+                        const x = c * (RADIUS * 2) + (r % 2 === 1 ? RADIUS : 0) + RADIUS;
+                        const y = r * (RADIUS * 1.8) + RADIUS;
+                        drawCircle(x, y, grid[r][c]);
+                    }
+                }
+            }
+
+            if (projectile) {
+                drawCircle(projectile.x, projectile.y, projectile.color);
+            }
+        }
+
+        function drawCircle(x, y, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, RADIUS - 2, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // 3. Shooting Logic
+        canvas.addEventListener('click', (e) => {
+            if (projectile) return; // Wait for current shot to finish
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const angle = Math.atan2(mouseY - 480, mouseX - 200);
+            
+            projectile = {
+                x: 200, y: 480,
+                vx: Math.cos(angle) * 8,
+                vy: Math.sin(angle) * 8,
+                color: COLORS[Math.floor(Math.random() * COLORS.length)]
+            };
+        });
+
+        // 4. Update Loop (Movement & Collision)
+        function update() {
+            if (projectile) {
+                projectile.x += projectile.vx;
+                projectile.y += projectile.vy;
+
+                // Wall Bounce
+                if (projectile.x < RADIUS || projectile.x > canvas.width - RADIUS) {
+                    projectile.vx *= -1;
+                }
+
+                // Top Collision
+                if (projectile.y < RADIUS) {
+                    snapToGrid();
+                }
+
+                // Check collision with other bubbles
+                checkCollision();
+            }
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function checkCollision() {
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c]) {
+                        const gx = c * (RADIUS * 2) + (r % 2 === 1 ? RADIUS : 0) + RADIUS;
+                        const gy = r * (RADIUS * 1.8) + RADIUS;
+                        const dist = Math.hypot(projectile.x - gx, projectile.y - gy);
+                        
+                        if (dist < RADIUS * 1.5) {
+                            snapToGrid();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function snapToGrid() {
+            // Simple snapping logic
+            const r = Math.round((projectile.y - RADIUS) / (RADIUS * 1.8));
+            const c = Math.round((projectile.x - (r % 2 === 1 ? RADIUS : 0) - RADIUS) / (RADIUS * 2));
+            
+            if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                grid[r][c] = projectile.color;
+                score += 10;
+                scoreEl.innerText = score;
+            }
+            projectile = null;
+        }
+
+        initGrid();
+        update();
+    </script>
+</body>
+</html>
