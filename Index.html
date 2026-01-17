@@ -123,20 +123,16 @@
         }
 
         function snapToGrid() {
-            // Simple snapping logic
-            const r = Math.round((projectile.y - RADIUS) / (RADIUS * 1.8));
-            const c = Math.round((projectile.x - (r % 2 === 1 ? RADIUS : 0) - RADIUS) / (RADIUS * 2));
-            
-            if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-                grid[r][c] = projectile.color;
-                score += 10;
-                scoreEl.innerText = score;
-            }
-            projectile = null;
-        }
-
-        initGrid();
-        update();
-    </script>
-</body>
-</html>
+    // Calculate which row and column the projectile landed in
+    const r = Math.round((projectile.y - RADIUS) / (RADIUS * 1.8));
+    const c = Math.round((projectile.x - (r % 2 === 1 ? RADIUS : 0) - RADIUS) / (RADIUS * 2));
+    
+    // Safety check to make sure it's inside the grid
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+        grid[r][c] = projectile.color; // Place the bubble
+        
+        // NEW: Check if we should pop bubbles!
+        findAndPop(r, c, projectile.color); 
+    }
+    projectile = null; // Reset the shooter
+}
